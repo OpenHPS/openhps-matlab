@@ -20,7 +20,9 @@ describe('MatlabProcessingNode', () => {
     it('should process data', (done) => {
         sink.callback = (frame) => {
             console.log(frame);
+            done();
         };
+        model.once('error', done);
         model.push(new DataFrame(new DataObject("abc", "123")));
     });
 
