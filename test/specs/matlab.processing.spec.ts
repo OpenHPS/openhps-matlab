@@ -23,7 +23,9 @@ describe('MatlabProcessingNode', () => {
             done();
         };
         model.once('error', done);
-        model.push(new DataFrame(new DataObject("abc", "123")));
+        const frame = new DataFrame(new DataObject("abc", "123"));
+        frame.addObject(new DataObject("test"));
+        model.push(frame);
     });
 
 });

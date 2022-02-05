@@ -172,7 +172,6 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
         const msg = JSON.parse(buffer.toString().replace(/x__type/g, '__type'));
         const promise = this._promises.get(msg.id);
         if (promise) {
-            console.log(msg.data);
             promise.resolve(DataSerializer.deserialize(msg.data));
         }
     }
