@@ -1,11 +1,35 @@
 import { DataFrame, DataSerializer, ProcessingNode, ProcessingNodeOptions, PushOptions } from '@openhps/core';
-import { exec } from 'child_process';
+import { ChildProcess, exec, spawn } from 'child_process';
 import * as shell from 'shelljs';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
 import * as net from 'net';
 import { v4 as uuidv4 } from 'uuid';
+
+DataSerializer.registerType(Map, {
+    serializer: ((data, params) => {
+        if (data === undefined) {
+            return undefined;
+        }
+        const entries = Array.from(data.entries());
+        return entries.map(entry => ({ key: entry[0], value: DataSerializer.serialize(entry[1]) }));
+    }),
+    deserializer: ((data, params) => {
+        if (data === undefined) {
+            return undefined;
+        }
+        const result = new Map();
+        if (data instanceof Array) {
+            data.forEach(entry => {
+                result.set(entry.key, DataSerializer.deserialize(entry.value));
+            });
+        } else if (data['key'] !== undefined && data['value'] !== undefined) {
+            result.set(data.key, DataSerializer.deserialize(data.value));
+        }
+        return result;
+    })
+});
 
 /**
  * Matlab script processing node
@@ -16,6 +40,7 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
     protected source: string;
     private _server: net.Server;
     private _client: net.Socket;
+    private _process: ChildProcess;
     private _promises: Map<string, { resolve: (data?: any) => void; reject: (ex?: any) => void }> = new Map();
     
     constructor(file?: string, options?: MatlabNodeOptions);
@@ -43,15 +68,25 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
             this.source = `
             t = tcpclient("${this.options.host}", ${this.options.port});
             configureTerminator(t, "LF", "CR/LF");
+            running = true;
             while true
                 while t.NumBytesAvailable > 0
                     msg = readline(t);
                     json = jsondecode(msg);
-                    if json.action == 'process'
+                    if strcmp(json.action, 'process')
                         json.data = process(json.data);
                         t.writeline(jsonencode(json));
+                    elseif strcmp(json.action, 'quit')
+                        running = false;
+                        break;
                     end
                 end
+                if running == false
+                    break;
+                end
+            end
+            function log(msg)
+                t.writeline(msg);
             end
             ${this.source}`;
         }
@@ -101,9 +136,21 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
     private _onDestroy(): Promise<void> {
         return new Promise((resolve) => {
             if (this._server) {
+                if (this._client) {
+                    this._client.write((JSON.stringify({
+                        id: uuidv4(),
+                        action: "quit"
+                    }) + "\n"));
+                }
                 this._server.close();
             }
-            resolve();
+            if (this._process && !this._process.killed) {
+                this._process.on('close', () => resolve());
+                process.kill(-this._process.pid);
+                this._process = void 0;
+            } else {
+                resolve();
+            }
         });
     }
 
@@ -149,8 +196,11 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
 
     process(data: In, options?: PushOptions): Promise<Out> {
         return new Promise((resolve, reject) => {
+            // Serialize data for sending to Matlab
+            const serializedData = DataSerializer.serialize(data);
+
             if (!this.options.keepAlive) {
-                this._legacyExecute(data).then(resolve).catch(reject);
+                this._legacyExecute(serializedData).then(resolve).catch(reject);
             } else {
                 const id = uuidv4();
                 if (!this._client) {
@@ -160,7 +210,7 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
                 this._client.write((JSON.stringify({
                     id,
                     action: "process",
-                    data: DataSerializer.serialize(data),
+                    data: serializedData,
                     options
                 }) + "\n"));
                 this._promises.set(id, { resolve, reject });
@@ -178,25 +228,32 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
 
     private _clientExecute(): Promise<void> {
         return new Promise((resolve, reject) => {
-            const cmd = `${this.options.executionPath} -nosplash -nodesktop -r ` + 
-                `run('${this.file}')"`;
-            exec(cmd, (error, stdout, stderr) => {
-                if (error) {
-                    return reject(stderr.trim());
-                }
+            this._process = spawn(this.options.executionPath, [
+                "-automation",
+                "-nosplash",
+                "-nodesktop",
+                "-r",
+                `"run('${this.file}'); exit;"`
+            ], { detached: true });
+            this._process.stderr.setEncoding('utf8');
+            this._process.stderr.on('data', (err) => {
+                reject(err);
+            });
+            this._process.stdout.setEncoding('utf8');
+            this._process.stdout.on('data', () => {
                 resolve();
             });
         });
     }
 
-    private _legacyExecute(data: In): Promise<Out> {
+    private _legacyExecute(serializedData: any): Promise<Out> {
         return new Promise((resolve, reject) => {
             const directory = path.dirname(this.file);
             const processFunction = this.file
                 .substring(0, this.file.lastIndexOf('.'))
                 .replace(directory, '')
                 .substring(1);
-            const input = encodeURI(JSON.stringify(DataSerializer.serialize(data)));
+            const input = encodeURI(JSON.stringify(serializedData));
             const cmd = `${this.options.executionPath} -nosplash -batch ` + 
                 `"cd('${directory}');` + 
                 `disp(jsonencode(${processFunction}(jsondecode(urldecode('${input}')))));` + 

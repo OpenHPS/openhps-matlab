@@ -17,14 +17,26 @@ describe('MatlabProcessingNode', () => {
             }).catch(done);
     });
 
-    it('should process data', (done) => {
+    after(() => {
+        model.destroy();
+    });
+
+    it('should forward data with two data objects in a frame', (done) => {
         sink.callback = (frame) => {
-            console.log(frame);
             done();
         };
         model.once('error', done);
         const frame = new DataFrame(new DataObject("abc", "123"));
         frame.addObject(new DataObject("test"));
+        model.push(frame);
+    });
+
+    it('should forward data with one data object in a frame', (done) => {
+        sink.callback = (frame) => {
+            done();
+        };
+        model.once('error', done);
+        const frame = new DataFrame(new DataObject("abc", "123"));
         model.push(frame);
     });
 
