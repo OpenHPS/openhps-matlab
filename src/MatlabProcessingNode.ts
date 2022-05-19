@@ -7,6 +7,9 @@ import * as fs from 'fs';
 import * as net from 'net';
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * Custom data serializer for Matlab Map's
+ */
 DataSerializer.registerType(Map, {
     serializer: (data, _) => {
         if (data === undefined) {
@@ -43,7 +46,19 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
     private _process: ChildProcess;
     private _promises: Map<string, { resolve: (data?: any) => void; reject: (ex?: any) => void }> = new Map();
 
-    constructor(file?: string, options?: MatlabNodeOptions);
+    /**
+     * Create a matlab processing node for a file
+     *
+     * @param {string} file Matlab file
+     * @param {MatlabNodeOptions} options Matlab node options 
+     */
+    constructor(file?: `${string}.m`, options?: MatlabNodeOptions);
+    /**
+     * Create a matlab processing node for content
+     *
+     * @param {string} content Matlab content
+     * @param {MatlabNodeOptions} options Matlab node options 
+     */
     constructor(content?: string, options?: MatlabNodeOptions);
     constructor(fileOrContent?: string, options?: MatlabNodeOptions) {
         super(options);
@@ -52,6 +67,7 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
         this.options.port = this.options.port ?? 1337;
         this.options.keepAlive = this.options.keepAlive === undefined ? true : this.options.keepAlive;
 
+        // Freeze execution path to avoid other nodes from modifying it
         Object.freeze(this.options.executionPath);
         if (fileOrContent.endsWith('.m')) {
             this.file = path.resolve(fileOrContent);
@@ -174,11 +190,8 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
     }
 
     protected getVersion(): Promise<string> {
-        return new Promise((resolve, reject) => {
-            exec(`${this.options.executionPath} -help`, (err, stdout) => {
-                if (err) {
-                    return reject(err);
-                }
+        return new Promise((resolve) => {
+            exec(`${this.options.executionPath} -help`, (_, stdout) => {
                 const versionString = stdout
                     .trim()
                     .split('\r\n')
