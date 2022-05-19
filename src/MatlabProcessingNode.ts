@@ -8,27 +8,27 @@ import * as net from 'net';
 import { v4 as uuidv4 } from 'uuid';
 
 DataSerializer.registerType(Map, {
-    serializer: ((data, params) => {
+    serializer: (data, _) => {
         if (data === undefined) {
             return undefined;
         }
         const entries = Array.from(data.entries());
-        return entries.map(entry => ({ key: entry[0], value: DataSerializer.serialize(entry[1]) }));
-    }),
-    deserializer: ((data, params) => {
+        return entries.map((entry) => ({ key: entry[0], value: DataSerializer.serialize(entry[1]) }));
+    },
+    deserializer: (data, _) => {
         if (data === undefined) {
             return undefined;
         }
         const result = new Map();
         if (data instanceof Array) {
-            data.forEach(entry => {
+            data.forEach((entry) => {
                 result.set(entry.key, DataSerializer.deserialize(entry.value));
             });
         } else if (data['key'] !== undefined && data['value'] !== undefined) {
             result.set(data.key, DataSerializer.deserialize(data.value));
         }
         return result;
-    })
+    },
 });
 
 /**
@@ -42,13 +42,13 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
     private _client: net.Socket;
     private _process: ChildProcess;
     private _promises: Map<string, { resolve: (data?: any) => void; reject: (ex?: any) => void }> = new Map();
-    
+
     constructor(file?: string, options?: MatlabNodeOptions);
     constructor(content?: string, options?: MatlabNodeOptions);
     constructor(fileOrContent?: string, options?: MatlabNodeOptions) {
         super(options);
         this.options.executionPath = this.options.executionPath ?? 'matlab';
-        this.options.host = this.options.host ?? "127.0.0.1";
+        this.options.host = this.options.host ?? '127.0.0.1';
         this.options.port = this.options.port ?? 1337;
         this.options.keepAlive = this.options.keepAlive === undefined ? true : this.options.keepAlive;
 
@@ -106,7 +106,7 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
                         reject(new Error('You must have installed MATLAB 2019a or later'));
                     }
                     if (this.source) {
-                        return this.createTempFile(this.source, this.options.keepAlive ? "client.m" : "process.m");
+                        return this.createTempFile(this.source, this.options.keepAlive ? 'client.m' : 'process.m');
                     } else {
                         return Promise.resolve(undefined);
                     }
@@ -119,11 +119,11 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
                                 this._client = undefined;
                             });
                             socket.on('data', this._onClientMessage.bind(this));
-                            socket.on("error", (err) => this.logger('error', err));
+                            socket.on('error', (err) => this.logger('error', err));
                             resolve();
                         });
-                        
-                        this._server.listen(this.options.port, this.options.host);         
+
+                        this._server.listen(this.options.port, this.options.host);
                         return this._clientExecute();
                     } else {
                         resolve();
@@ -137,10 +137,12 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
         return new Promise((resolve) => {
             if (this._server) {
                 if (this._client) {
-                    this._client.write((JSON.stringify({
-                        id: uuidv4(),
-                        action: "quit"
-                    }) + "\n"));
+                    this._client.write(
+                        JSON.stringify({
+                            id: uuidv4(),
+                            action: 'quit',
+                        }) + '\n',
+                    );
                 }
                 this._server.close();
             }
@@ -154,7 +156,7 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
         });
     }
 
-    protected createTempFile(content: string, file: string = 'process.m'): Promise<string> {
+    protected createTempFile(content: string, file = 'process.m'): Promise<string> {
         return new Promise((resolve, reject) => {
             fs.mkdtemp(path.join(os.tmpdir(), 'openhps-matlab'), (err, dir) => {
                 if (err) {
@@ -173,7 +175,10 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
 
     protected getVersion(): Promise<string> {
         return new Promise((resolve, reject) => {
-            exec(`${this.options.executionPath} -help`, (_, stdout) => {
+            exec(`${this.options.executionPath} -help`, (err, stdout) => {
+                if (err) {
+                    return reject(err);
+                }
                 const versionString = stdout
                     .trim()
                     .split('\r\n')
@@ -206,13 +211,15 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
                 if (!this._client) {
                     return reject(`No Matlab processing client connected!`);
                 }
-    
-                this._client.write((JSON.stringify({
-                    id,
-                    action: "process",
-                    data: serializedData,
-                    options
-                }) + "\n"));
+
+                this._client.write(
+                    JSON.stringify({
+                        id,
+                        action: 'process',
+                        data: serializedData,
+                        options,
+                    }) + '\n',
+                );
                 this._promises.set(id, { resolve, reject });
             }
         });
@@ -228,13 +235,11 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
 
     private _clientExecute(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this._process = spawn(this.options.executionPath, [
-                "-automation",
-                "-nosplash",
-                "-nodesktop",
-                "-r",
-                `"run('${this.file}'); exit;"`
-            ], { detached: true });
+            this._process = spawn(
+                this.options.executionPath,
+                ['-automation', '-nosplash', '-nodesktop', '-r', `"run('${this.file}'); exit;"`],
+                { detached: true },
+            );
             this._process.stderr.setEncoding('utf8');
             this._process.stderr.on('data', (err) => {
                 reject(err);
@@ -254,15 +259,19 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
                 .replace(directory, '')
                 .substring(1);
             const input = encodeURI(JSON.stringify(serializedData));
-            const cmd = `${this.options.executionPath} -nosplash -batch ` + 
-                `"cd('${directory}');` + 
-                `disp(jsonencode(${processFunction}(jsondecode(urldecode('${input}')))));` + 
+            const cmd =
+                `${this.options.executionPath} -nosplash -batch ` +
+                `"cd('${directory}');` +
+                `disp(jsonencode(${processFunction}(jsondecode(urldecode('${input}')))));` +
                 `exit;"`;
             exec(cmd, (error, stdout, stderr) => {
                 if (error) {
                     return reject(stderr.trim());
                 }
-                const result = stdout.replace(/\\n/g, '\n').replace(/x__type/g, '__type').trim();
+                const result = stdout
+                    .replace(/\\n/g, '\n')
+                    .replace(/x__type/g, '__type')
+                    .trim();
                 resolve(DataSerializer.deserialize(JSON.parse(result)));
             });
         });
@@ -273,7 +282,7 @@ export interface MatlabNodeOptions extends ProcessingNodeOptions {
     /**
      * Execution path of the matlab executable
      *
-     * @default matlab
+     * @default "matlab"
      */
     executionPath?: string;
     /**
@@ -285,7 +294,7 @@ export interface MatlabNodeOptions extends ProcessingNodeOptions {
     /**
      * Host to use for the matlab socket server. This socket server is not secured
      * and should only be accessible by the matlab script stream processing your data.
-     * 
+     *
      * @default 127.0.0.1
      */
     host?: string;
