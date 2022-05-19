@@ -44,9 +44,16 @@ import { MatlabProcessingNode } from '@openhps/matlab';
 
 ModelBuilder.create()
     .from(/* ... */)
-    .via(new MatlabProcessingNode("test.m"))
+    .via(new MatlabProcessingNode("process.m"))
     .to(/* ... */)
     .build();
+```
+
+**process.m**
+```matlab
+function frame = process(frame)
+    
+end
 ```
 
 ### Executing Content
