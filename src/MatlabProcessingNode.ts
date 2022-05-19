@@ -50,14 +50,14 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
      * Create a matlab processing node for a file
      *
      * @param {string} file Matlab file
-     * @param {MatlabNodeOptions} options Matlab node options 
+     * @param {MatlabNodeOptions} options Matlab node options
      */
     constructor(file?: `${string}.m`, options?: MatlabNodeOptions);
     /**
      * Create a matlab processing node for content
      *
      * @param {string} content Matlab content
-     * @param {MatlabNodeOptions} options Matlab node options 
+     * @param {MatlabNodeOptions} options Matlab node options
      */
     constructor(content?: string, options?: MatlabNodeOptions);
     constructor(fileOrContent?: string, options?: MatlabNodeOptions) {
