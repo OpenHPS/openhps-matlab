@@ -48,14 +48,12 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
 
     /**
      * Create a matlab processing node for a file
-     *
      * @param {string} file Matlab file
      * @param {MatlabNodeOptions} options Matlab node options
      */
     constructor(file?: `${string}.m`, options?: MatlabNodeOptions);
     /**
      * Create a matlab processing node for content
-     *
      * @param {string} content Matlab content
      * @param {MatlabNodeOptions} options Matlab node options
      */
@@ -294,26 +292,22 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
 export interface MatlabNodeOptions extends ProcessingNodeOptions {
     /**
      * Execution path of the matlab executable
-     *
      * @default "matlab"
      */
     executionPath?: string;
     /**
      * Keep the matlab software running by creating a socket connection
-     *
      * @default true
      */
     keepAlive?: boolean;
     /**
      * Host to use for the matlab socket server. This socket server is not secured
      * and should only be accessible by the matlab script stream processing your data.
-     *
      * @default 127.0.0.1
      */
     host?: string;
     /**
      * Port to use for the matlab socket server.
-     *
      * @default 1337
      */
     port?: number;
