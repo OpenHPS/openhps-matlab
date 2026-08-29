@@ -10,3 +10,8 @@ test-results.xml
 # MatLab
 *.m
 !test/**/*.m
+
+# OpenHPS baseline
+.cache/
+xunit.xml
+.DS_Store
