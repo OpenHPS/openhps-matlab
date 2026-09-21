@@ -70,9 +70,9 @@
         "reflect-metadata": ">=0.2.2 <1"
     },
     "devDependencies": {
-        "@babel/cli": "^7.17.10",
-        "@babel/core": "^7.17.12",
-        "@babel/preset-env": "^7.17.12",
+        "@babel/cli": "^8.0.5",
+        "@babel/core": "^8.0.5",
+        "@babel/preset-env": "^8.0.5",
         "@commitlint/cli": "^19.8.1",
         "@commitlint/config-conventional": "^19.8.1",
         "@eslint/js": "^9.34.0",
