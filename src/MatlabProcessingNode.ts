@@ -1,5 +1,5 @@
 import { DataFrame, DataSerializer, ProcessingNode, ProcessingNodeOptions, PushOptions } from '@openhps/core';
-import { ChildProcess, exec, spawn } from 'child_process';
+import { ChildProcess, execFile, spawn } from 'child_process';
 import * as shell from 'shelljs';
 import * as path from 'path';
 import * as os from 'os';
@@ -45,6 +45,8 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
     private _client: net.Socket;
     private _process: ChildProcess;
     private _promises: Map<string, { resolve: (data?: any) => void; reject: (ex?: any) => void }> = new Map();
+    private _socketBuffer = '';
+    private _tempDir: string;
 
     /**
      * Create a matlab processing node for a file
@@ -65,17 +67,19 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
         this.options.port = this.options.port ?? 1337;
         this.options.keepAlive = this.options.keepAlive === undefined ? true : this.options.keepAlive;
 
-        // Freeze execution path to avoid other nodes from modifying it
-        Object.freeze(this.options.executionPath);
-        if (fileOrContent.endsWith('.m')) {
+        // Freeze the options to avoid other nodes from modifying them
+        Object.freeze(this.options);
+        if (fileOrContent && fileOrContent.endsWith('.m')) {
             this.file = path.resolve(fileOrContent);
-        } else {
+        } else if (fileOrContent) {
             // Create a temp file with a function
             this.source = `
             function frame = process(frame)
             ${fileOrContent}
             end
             `;
+        } else {
+            throw new Error('Either a Matlab .m file or Matlab content must be provided!');
         }
 
         if (this.options.keepAlive) {
@@ -117,7 +121,7 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
             this.getVersion()
                 .then((version) => {
                     if (Number(version) < 9.06) {
-                        reject(new Error('You must have installed MATLAB 2019a or later'));
+                        return reject(new Error('You must have installed MATLAB 2019a or later'));
                     }
                     if (this.source) {
                         return this.createTempFile(this.source, this.options.keepAlive ? 'client.m' : 'process.m');
@@ -127,16 +131,21 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
                 })
                 .then(() => {
                     if (this.options.keepAlive) {
+                        // A failed Matlab start must not hang the build forever
+                        const connectionTimeout = setTimeout(() => {
+                            reject(new Error('The Matlab client did not connect!'));
+                        }, 60000);
                         this._server = net.createServer((socket) => {
+                            clearTimeout(connectionTimeout);
                             this._client = socket;
                             socket.on('close', () => {
                                 this._client = undefined;
                             });
                             socket.on('data', this._onClientMessage.bind(this));
-                            socket.on('error', (err) => this.logger('error', err));
+                            socket.on('error', (err) => this.logger('error', `Error on Matlab client socket`, err));
                             resolve();
                         });
-
+                        this._server.once('error', reject);
                         this._server.listen(this.options.port, this.options.host);
                         return this._clientExecute();
                     } else {
@@ -162,10 +171,23 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
             }
             if (this._process && !this._process.killed) {
                 this._process.on('close', () => resolve());
-                process.kill(-this._process.pid);
+                if (this._process.pid) {
+                    try {
+                        process.kill(-this._process.pid);
+                    } catch {
+                        // The process already exited
+                        resolve();
+                    }
+                } else {
+                    resolve();
+                }
                 this._process = void 0;
             } else {
                 resolve();
+            }
+            if (this._tempDir) {
+                fs.rm(this._tempDir, { recursive: true, force: true }, () => {});
+                this._tempDir = undefined;
             }
         });
     }
@@ -176,6 +198,7 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
                 if (err) {
                     return reject(err);
                 }
+                this._tempDir = dir;
                 this.file = path.join(dir, file);
                 fs.writeFile(this.file, content, (err) => {
                     if (err) {
@@ -188,16 +211,17 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
     }
 
     protected getVersion(): Promise<string> {
-        return new Promise((resolve) => {
-            exec(`${this.options.executionPath} -help`, (_, stdout) => {
-                const versionString = stdout
-                    .trim()
-                    .split('\r\n')
-                    .reverse()[0]
-                    .trim()
-                    .match(/Version:(.*),/)[1]
-                    .trim()
-                    .split('.');
+        return new Promise((resolve, reject) => {
+            execFile(this.options.executionPath, ['-help'], (err, stdout) => {
+                if (err) {
+                    return reject(err);
+                }
+                const lines = stdout.trim().split(/\r?\n/);
+                const match = (lines[lines.length - 1] || '').trim().match(/Version:(.*),/);
+                if (!match) {
+                    return reject(new Error(`Unable to parse the Matlab version!`));
+                }
+                const versionString = match[1].trim().split('.');
                 versionString.length -= 1;
                 if (versionString[0].length === 1) {
                     versionString[0] = '0' + versionString[0];
@@ -237,27 +261,53 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
     }
 
     private _onClientMessage(buffer: Buffer): void {
-        const msg = JSON.parse(buffer.toString().replace(/x__type/g, '__type'));
-        const promise = this._promises.get(msg.id);
-        if (promise) {
-            promise.resolve(DataSerializer.deserialize(msg.data));
+        this._socketBuffer += buffer.toString();
+        const lines = this._socketBuffer.split('\n');
+        // The last element is the last (possibly incomplete) line
+        this._socketBuffer = lines.pop();
+        for (const line of lines) {
+            if (!line.trim()) {
+                continue;
+            }
+            let msg: any;
+            try {
+                msg = JSON.parse(line.replace(/x__type/g, '__type'));
+            } catch {
+                // The line is not a JSON message (e.g. a log line written by the Matlab script)
+                continue;
+            }
+            const promise = this._promises.get(msg.id);
+            if (promise) {
+                this._promises.delete(msg.id);
+                promise.resolve(DataSerializer.deserialize(msg.data));
+            }
         }
     }
 
     private _clientExecute(): Promise<void> {
         return new Promise((resolve, reject) => {
+            // Escape the path for the Matlab single-quoted string inside the double-quoted -r argument
+            const quotedFile = this.file.replace(/'/g, "''").replace(/"/g, '""');
             this._process = spawn(
                 this.options.executionPath,
-                ['-automation', '-nosplash', '-nodesktop', '-r', `"run('${this.file}'); exit;"`],
+                ['-automation', '-nosplash', '-nodesktop', '-r', `"run('${quotedFile}'); exit;"`],
                 { detached: true },
             );
+            this._process.on('error', reject);
             this._process.stderr.setEncoding('utf8');
-            this._process.stderr.on('data', (err) => {
-                reject(err);
+            // Matlab routinely writes warnings to stderr, so log them and only
+            // reject on a failed exit
+            this._process.stderr.on('data', (chunk: string) => {
+                this.logger('warn', `Matlab stderr: ${chunk.trim()}`);
             });
             this._process.stdout.setEncoding('utf8');
             this._process.stdout.on('data', () => {
                 resolve();
+            });
+            this._process.on('exit', (code) => {
+                if (code !== 0) {
+                    reject(new Error(`Matlab exited with code ${code}`));
+                }
             });
         });
     }
@@ -269,21 +319,34 @@ export class MatlabProcessingNode<In extends DataFrame, Out extends DataFrame> e
                 .substring(0, this.file.lastIndexOf('.'))
                 .replace(directory, '')
                 .substring(1);
-            const input = encodeURI(JSON.stringify(serializedData));
-            const cmd =
-                `${this.options.executionPath} -nosplash -batch ` +
-                `"cd('${directory}');` +
-                `disp(jsonencode(${processFunction}(jsondecode(urldecode('${input}')))));` +
-                `exit;"`;
-            exec(cmd, (error, stdout, stderr) => {
-                if (error) {
-                    return reject(stderr.trim());
+            // Pass the payload via a temp file to keep it out of the command line
+            const inputPath = path.join(os.tmpdir(), `openhps-matlab-${uuidv4()}.json`);
+            fs.writeFile(inputPath, JSON.stringify(serializedData), (writeError) => {
+                if (writeError) {
+                    return reject(writeError);
                 }
-                const result = stdout
-                    .replace(/\\n/g, '\n')
-                    .replace(/x__type/g, '__type')
-                    .trim();
-                resolve(DataSerializer.deserialize(JSON.parse(result)));
+                // Escape the paths for the Matlab single-quoted strings
+                const quotedDirectory = `'${directory.replace(/'/g, "''").replace(/"/g, '""')}'`;
+                const quotedInputPath = `'${inputPath.replace(/'/g, "''").replace(/"/g, '""')}'`;
+                const cmd =
+                    `cd(${quotedDirectory});` +
+                    `disp(jsonencode(${processFunction}(jsondecode(fileread(${quotedInputPath})))));` +
+                    `exit;`;
+                execFile(this.options.executionPath, ['-nosplash', '-batch', cmd], (error, stdout, stderr) => {
+                    try {
+                        fs.rmSync(inputPath, { force: true });
+                    } catch {
+                        // Temp file cleanup is best effort
+                    }
+                    if (error) {
+                        return reject(stderr.trim());
+                    }
+                    const result = stdout
+                        .replace(/\\n/g, '\n')
+                        .replace(/x__type/g, '__type')
+                        .trim();
+                    resolve(DataSerializer.deserialize(JSON.parse(result)));
+                });
             });
         });
     }
