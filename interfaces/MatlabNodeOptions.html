@@ -11,14 +11,14 @@
 <li><a href="" aria-current="page">MatlabNodeOptions</a></li></ul>
 <h1>Interface MatlabNodeOptions</h1></div>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">MatlabNodeOptions</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#executionpath">executionPath</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#framefilter">frameFilter</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">frame</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">DataFrame</span><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#host">host</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#keepalive">keepAlive</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#name">name</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#port">port</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#uid">uid</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div>
-<section class="tsd-panel tsd-hierarchy" data-refl="187">
+<section class="tsd-panel tsd-hierarchy" data-refl="154">
 <h4>Hierarchy</h4>
 <ul class="tsd-hierarchy">
 <li class="tsd-hierarchy-item"><span class="tsd-signature-type">ProcessingNodeOptions</span>
 <ul class="tsd-hierarchy">
 <li class="tsd-hierarchy-item"><span class="tsd-hierarchy-target">MatlabNodeOptions</span></li></ul></li></ul></section><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/OpenHPS/openhps-matlab/blob/15b0bd1251bb87d00e78a14c93e3de67c4e041cd/src/MatlabProcessingNode.ts#L292">src/MatlabProcessingNode.ts:292</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/OpenHPS/openhps-matlab/blob/ad7660499fd933e14a542f02b71f690a4bfb713d/src/MatlabProcessingNode.ts#L355">src/MatlabProcessingNode.ts:355</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -49,7 +49,7 @@
 
 </div></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/OpenHPS/openhps-matlab/blob/15b0bd1251bb87d00e78a14c93e3de67c4e041cd/src/MatlabProcessingNode.ts#L297">src/MatlabProcessingNode.ts:297</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/OpenHPS/openhps-matlab/blob/ad7660499fd933e14a542f02b71f690a4bfb713d/src/MatlabProcessingNode.ts#L360">src/MatlabProcessingNode.ts:360</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external">
 <h3 class="tsd-anchor-link" id="framefilter"><code class="tsd-tag">Optional</code><span>frame<wbr/>Filter</span><a href="#framefilter" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">frameFilter</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">frame</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">DataFrame</span><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">boolean</span></div>
@@ -66,12 +66,12 @@ and should only be accessible by the matlab script stream processing your data.<
 </div>
 <div class="tsd-comment tsd-typography">
 <div class="tsd-tag-default">
-<h4 class="tsd-anchor-link" id="default-1">Default<a href="#default-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><pre><code class="ts"><span class="hl-8">127.0</span><span class="hl-1">.</span><span class="hl-8">0.1</span>
+<h4 class="tsd-anchor-link" id="default-1">Default<a href="#default-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><pre><code class="ts"><span class="hl-9">127.0</span><span class="hl-1">.</span><span class="hl-9">0.1</span>
 </code><button type="button">Copy</button></pre>
 
 </div></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/OpenHPS/openhps-matlab/blob/15b0bd1251bb87d00e78a14c93e3de67c4e041cd/src/MatlabProcessingNode.ts#L308">src/MatlabProcessingNode.ts:308</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/OpenHPS/openhps-matlab/blob/ad7660499fd933e14a542f02b71f690a4bfb713d/src/MatlabProcessingNode.ts#L371">src/MatlabProcessingNode.ts:371</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="keepalive"><code class="tsd-tag">Optional</code><span>keep<wbr/>Alive</span><a href="#keepalive" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">keepAlive</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">boolean</span></div>
@@ -84,7 +84,7 @@ and should only be accessible by the matlab script stream processing your data.<
 
 </div></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/OpenHPS/openhps-matlab/blob/15b0bd1251bb87d00e78a14c93e3de67c4e041cd/src/MatlabProcessingNode.ts#L302">src/MatlabProcessingNode.ts:302</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/OpenHPS/openhps-matlab/blob/ad7660499fd933e14a542f02b71f690a4bfb713d/src/MatlabProcessingNode.ts#L365">src/MatlabProcessingNode.ts:365</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external">
 <h3 class="tsd-anchor-link" id="name"><code class="tsd-tag">Optional</code><span>name</span><a href="#name" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">name</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
@@ -101,12 +101,12 @@ Used for querying a node by its name.</p>
 </div>
 <div class="tsd-comment tsd-typography">
 <div class="tsd-tag-default">
-<h4 class="tsd-anchor-link" id="default-3">Default<a href="#default-3" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><pre><code class="ts"><span class="hl-8">1337</span>
+<h4 class="tsd-anchor-link" id="default-3">Default<a href="#default-3" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h4><pre><code class="ts"><span class="hl-9">1337</span>
 </code><button type="button">Copy</button></pre>
 
 </div></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/OpenHPS/openhps-matlab/blob/15b0bd1251bb87d00e78a14c93e3de67c4e041cd/src/MatlabProcessingNode.ts#L313">src/MatlabProcessingNode.ts:313</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/OpenHPS/openhps-matlab/blob/ad7660499fd933e14a542f02b71f690a4bfb713d/src/MatlabProcessingNode.ts#L376">src/MatlabProcessingNode.ts:376</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member tsd-is-inherited tsd-is-external">
 <h3 class="tsd-anchor-link" id="uid"><code class="tsd-tag">Optional</code><span>uid</span><a href="#uid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">uid</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
