@@ -6,10 +6,10 @@
     "license": "Apache-2.0",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/OpenHPS/openhps-csv.git"
+        "url": "git+https://github.com/OpenHPS/openhps-matlab.git"
     },
     "bugs": {
-        "url": "https://github.com/OpenHPS/openhps-csv/issues"
+        "url": "https://github.com/OpenHPS/openhps-matlab/issues"
     },
     "homepage": "https://openhps.org",
     "publishConfig": {
